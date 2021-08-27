@@ -116,8 +116,6 @@ COPY_GOLD = $(abspath $(BUILDER_HOME)/copy-gold.sh)
 
 AWS_S3_BUCKET ?= datawire-static-files
 
-GCR_RELEASE_REGISTRY ?= gcr.io/datawire
-
 # the image used for running the Ingress v1 tests with KIND.
 # the current, official image does not support Ingress v1, so we must build our own image with k8s 1.18.
 # build this image with:
