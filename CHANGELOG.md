@@ -75,36 +75,6 @@ Please see the [Envoy documentation](https://www.envoyproxy.io/docs/envoy/latest
 
 ## RELEASE NOTES
 
-## [2.0.3-ea] (TBD)
-[2.0.3-ea]: https://github.com/emissary-ingress/emissary/releases/v2.0.3-ea
-
-We're pleased to introduce Emissary-ingress 2.0.3 as a _developer preview_. The 2.X family
-introduces a number of changes to allow Emissary-ingress to more gracefully handle larger
-installations, reduce global configuration to better handle multitenant or multiorganizational
-installations, reduce memory footprint, and improve performance. We welcome feedback!! Join us on
-<a href="https://a8r.io/slack">Slack</a> and let us know what you think.
-
-## Emissary-ingress
-
-- Feature: The environment variable `AES_LOG_LEVEL` now also sets the log level for the `diagd` logger.
-
-## [2.0.2-ea] (2021-08-24)
-[2.0.2-ea]: https://github.com/emissary-ingress/emissary/releases/v2.0.2-ea
-
-We're pleased to introduce Emissary-ingress 2.0.2 as a _developer preview_. The 2.X family
-introduces a number of changes to allow Emissary-ingress to more gracefully handle larger
-installations, reduce global configuration to better handle multitenant or multiorganizational
-installations, reduce memory footprint, and improve performance. We welcome feedback!! Join us on
-<a href="https://a8r.io/slack">Slack</a> and let us know what you think.
-
-## Emissary-ingress
-
-- Bugfix: Upgraded envoy to 1.17.4 to address security vulnerabilities CVE-2021-32777, CVE-2021-32778,
-  CVE-2021-32779, and CVE-2021-32781.
-
-- Feature: You can now set `allow_chunked_length` in the Ambassador Module to configure the same value in
-  Envoy.
-
 - Change: Envoy-configuration snapshots get saved (as `ambex-#.json`) in `/ambassador/snapshots`. The number
   of snapshots is controlled by the `AMBASSADOR_AMBEX_SNAPSHOT_COUNT` environment variable; set it
   to 0 to disable. The default is 30.

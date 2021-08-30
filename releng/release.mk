@@ -66,4 +66,3 @@ release/ga/create-gh-release:
 release/ga/manifest-update:
 	$(OSS_HOME)/releng/release-manifest-image-update --oss-version $(VERSIONS_YAML_VER)
 .PHONY: release/ga/manifest-update
-
