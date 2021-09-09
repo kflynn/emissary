@@ -3,7 +3,7 @@ on:
   push:
     branches:
       - master
-      - aidanhahn/ci-repatriate-pr
+      - aidanhahn/repat-test-branch
 
 jobs:
   repatriate-to-lts:
