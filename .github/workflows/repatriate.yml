@@ -35,7 +35,11 @@ jobs:
         shell: bash
         run: |
           set -x
-          echo "${GITHUB_TOKEN}" | gh auth login --with-token
+          echo "${GITHUB_TOKEN}" > temp_credential
+          # GH does NOT want this in the env
+          export GITHUB_TOKEN=
+          cat temp_credential | gh auth login --with-token
+          rm temp_credential
           gh pr create --reviewer emissary-ingress/emissary-maintainers \
                        --title '[CI] repatriate changes from push ${PUSH_ID}' \
                        --body 'This PR contains chhanges from push to master ${PUSH_ID}'
