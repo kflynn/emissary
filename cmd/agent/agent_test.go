@@ -22,6 +22,7 @@ import (
 	"github.com/datawire/ambassador/v2/pkg/kates"
 	"github.com/datawire/ambassador/v2/pkg/kubeapply"
 	snapshotTypes "github.com/datawire/ambassador/v2/pkg/snapshot/v1"
+	"github.com/datawire/dlib/dcontext"
 	"github.com/datawire/dlib/dexec"
 	"github.com/datawire/dlib/dlog"
 )
@@ -234,7 +235,20 @@ func setup(t *testing.T, ctx context.Context, kubeconfig string, cli *kates.Clie
 
 	require.NoError(t, kubeapply.Kubeapply(kubeinfo, time.Minute, true, false, crdFile))
 	require.NoError(t, kubeapply.Kubeapply(kubeinfo, time.Minute, true, false, "./testdata/namespace.yaml"))
-	require.NoError(t, kubeapply.Kubeapply(kubeinfo, 4*time.Minute, true, false, newAesFile))
+	if !assert.NoError(t, kubeapply.Kubeapply(kubeinfo, 4*time.Minute, true, false, newAesFile)) {
+		os.Setenv("KUBECONFIG", kubeconfig)
+		dexec.CommandContext(dcontext.WithoutCancel(ctx), "kubectl", "--namespace=emissary", "get", "deployment/emissary-ingress").Run()
+		dexec.CommandContext(dcontext.WithoutCancel(ctx), "kubectl", "--namespace=emissary", "describe", "pods").Run()
+		bs, _ := dexec.CommandContext(dcontext.WithoutCancel(ctx), "kubectl", "--namespace=emissary", "get", "pods", "-o", "name").Output()
+		for _, pod := range strings.Split(string(bs), "\n") {
+			if strings.Contains(pod, "/emissary-ingress-") && !strings.Contains(pod, "agent") {
+				dexec.CommandContext(dcontext.WithoutCancel(ctx), "kubectl", "--namespace=emissary", "logs", pod).Run()
+				dexec.CommandContext(dcontext.WithoutCancel(ctx), "kubectl", "--namespace=emissary", "logs", "-p", pod).Run()
+				break
+			}
+		}
+		return
+	}
 	require.NoError(t, kubeapply.Kubeapply(kubeinfo, 2*time.Minute, true, false, "./testdata/fake-agentcom.yaml"))
 
 	dep := &kates.Deployment{
