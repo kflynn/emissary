@@ -163,14 +163,10 @@ func snapshotIsSane(ambSnapshot *snapshotTypes.Snapshot, t *testing.T, hasArgo b
 }
 func applyArgoResources(t *testing.T, kubeconfig string, cli *kates.Client) {
 	kubeinfo := k8s.NewKubeInfo(kubeconfig, "", "")
-	err := kubeapply.Kubeapply(kubeinfo, time.Minute, true, false, "./test/argo-rollouts-crd.yaml")
-	assert.NoError(t, err)
-	err = kubeapply.Kubeapply(kubeinfo, time.Minute, true, false, "./test/argo-rollouts.yaml")
-	assert.NoError(t, err)
-	err = kubeapply.Kubeapply(kubeinfo, time.Minute, true, false, "./test/argo-application-crd.yaml")
-	assert.NoError(t, err)
-	err = kubeapply.Kubeapply(kubeinfo, time.Minute, true, false, "./test/argo-application.yaml")
-	assert.NoError(t, err)
+	assert.NoError(t, kubeapply.Kubeapply(kubeinfo, time.Minute, true, false, "./test/argo-rollouts-crd.yaml"))
+	assert.NoError(t, kubeapply.Kubeapply(kubeinfo, time.Minute, true, false, "./test/argo-rollouts.yaml"))
+	assert.NoError(t, kubeapply.Kubeapply(kubeinfo, time.Minute, true, false, "./test/argo-application-crd.yaml"))
+	assert.NoError(t, kubeapply.Kubeapply(kubeinfo, time.Minute, true, false, "./test/argo-application.yaml"))
 }
 
 func setup(t *testing.T, ctx context.Context, kubeconfig string, cli *kates.Client) {
@@ -188,16 +184,12 @@ func setup(t *testing.T, ctx context.Context, kubeconfig string, cli *kates.Clie
 	aesReplaced := strings.ReplaceAll(string(aesDat), "docker.io/datawire/aes:$version$", image)
 	newAesFile := t.TempDir() + "/aes.yaml"
 
-	err = ioutil.WriteFile(newAesFile, []byte(aesReplaced), 0644)
-	assert.NoError(t, err)
+	assert.NoError(t, ioutil.WriteFile(newAesFile, []byte(aesReplaced), 0644))
 	kubeinfo := k8s.NewKubeInfo(kubeconfig, "", "")
 
-	err = kubeapply.Kubeapply(kubeinfo, time.Minute, true, false, crdFile)
-	assert.NoError(t, err)
-	err = kubeapply.Kubeapply(kubeinfo, time.Second*120, true, false, newAesFile)
-	assert.NoError(t, err)
-	err = kubeapply.Kubeapply(kubeinfo, time.Second*120, true, false, "./fake-agentcom.yaml")
-	assert.NoError(t, err)
+	assert.NoError(t, kubeapply.Kubeapply(kubeinfo, time.Minute, true, false, crdFile))
+	assert.NoError(t, kubeapply.Kubeapply(kubeinfo, time.Second*120, true, false, newAesFile))
+	assert.NoError(t, kubeapply.Kubeapply(kubeinfo, time.Second*120, true, false, "./fake-agentcom.yaml"))
 
 	dep := &kates.Deployment{
 		TypeMeta: kates.TypeMeta{
@@ -210,8 +202,7 @@ func setup(t *testing.T, ctx context.Context, kubeconfig string, cli *kates.Clie
 	}
 
 	patch := fmt.Sprintf(`{"spec":{"template":{"spec":{"containers":[{"name":"agent","env":[{"name":"%s", "value":"%s"}]}]}}}}`, "RPC_CONNECTION_ADDRESS", "http://agentcom-server.default:8080/")
-	err = cli.Patch(ctx, dep, kates.StrategicMergePatchType, []byte(patch), dep)
-	assert.NoError(t, err)
+	assert.NoError(t, cli.Patch(ctx, dep, kates.StrategicMergePatchType, []byte(patch), dep))
 }
 
 func deleteArgoResources(t *testing.T, ctx context.Context, kubeconfig string) {
