@@ -23,6 +23,8 @@ define _docgen
 endef
 
 push-preflight: create-venv $(tools/yq)
+	@test -n "$$AWS_ACCESS_KEY_ID" || (printf "$(RED)ERROR: AWS_ACCESS_KEY_ID must be set$(END)\n"; exit 1)
+	@test -n "$$AWS_SECRET_ACCESS_KEY" || (printf "$(RED)ERROR: AWS_SECRET_ACCESS_KEY must be set$(END)\n"; exit 1)
 	@$(OSS_HOME)/venv/bin/python -m pip install ruamel.yaml
 .PHONY: push-preflight
 

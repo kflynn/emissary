@@ -209,6 +209,11 @@ preflight-cluster:
 	fi
 .PHONY: preflight-cluster
 
+preflight-push-dev:
+	@test -n "$(DEV_REGISTRY)" || (printf "$(RED)ERROR: please set DEV_REGISTRY$(END)\n"; exit 1)
+	@test -n "$(AWS_S3_BUCKET)" || (printf "$(RED)ERROR: please set AWS_S3_BUCKET$(END)\n"; exit 1)
+.PHONY: preflight-push-dev
+
 sync: docker/container.txt
 	@printf "${CYN}==> ${GRN}Syncing sources in to builder container${END}\n"
 	@$(foreach MODULE,$(MODULES),$(BUILDER) sync $(MODULE) $(SOURCE_$(MODULE)) &&) true
@@ -329,7 +334,7 @@ push: docker/kat-client.docker.push.remote
 push: docker/kat-server.docker.push.remote
 .PHONY: push
 
-push-dev: docker/$(LCNAME).docker.tag.local
+push-dev: preflight-push-dev push-preflight docker/$(LCNAME).docker.tag.local
 	@set -e; { \
 		if [ -n "$(IS_DIRTY)" ]; then \
 			echo "push-dev: tree must be clean" >&2 ;\
@@ -346,7 +351,7 @@ push-dev: docker/$(LCNAME).docker.tag.local
 			tag="$(DEV_REGISTRY)/$$image:$${suffix}" ;\
 			printf "$(CYN)==> $(GRN)pushing $(BLU)$$image$(GRN) as $(BLU)$$tag$(GRN)...$(END)\n" ;\
 			docker tag $$(cat docker/$$image.docker) $$tag && \
-			docker push $$tag ;\
+			docker push $$tag || exit 1 ;\
 		done ;\
 		commit=$$(git rev-parse HEAD) ;\
 		printf "$(CYN)==> $(GRN)recording $(BLU)$$commit$(GRN) => $(BLU)$$suffix$(GRN) in S3...$(END)\n" ;\
