@@ -809,6 +809,46 @@ release/promote-oss/dev-to-passed-ci:
 	}
 .PHONY: release/promote-oss/dev-to-passed-ci
 
+# Copy parent map entries, when we know that no sources have changed.
+# The only weird bit here is that we may have more than one parent...
+release/promote-oss/copy-map-main:
+	@set -ex; { \
+		if [ -z "$(BUCKET)" ]; then \
+			printf "$(RED)==> release/promote-oss/copy-map-main needs BUCKET set$(END)\n" ;\
+			exit 1 ;\
+		fi ;\
+		parent_version= ;\
+		show_fix= ;\
+		parents=$$(git rev-parse HEAD^) ;\
+		for commit in $$parents; do \
+			v=$$(aws s3 cp s3://$(AWS_S3_BUCKET)/$(BUCKET)/$$commit - 2>/dev/null || true) ;\
+			if [ -n "$$v" ]; then \
+				if [ -n "$$parent_version" -a \( "$$v" != "$$parent_version" \) ]; then \
+					printf "$(RED)==> parent version mismatches in S3 $(BUCKET) for $$parents$(END)\n" ;\
+					show_fix=yes ;\
+					break ;\
+				fi ;\
+				parent_version="$$v" ;\
+			fi ;\
+		done ;\
+		if [ -z "$$parent_version" ]; then \
+			printf "$(RED)==> found no parent version for $$commit in S3 $(BUCKET)...$(END)\n" ;\
+			show_fix=yes ;\
+		fi ;\
+		if [ -n "$$show_fix" ]; then \
+			printf "$(RED)==> To fix this, check out $$(git rev-parse HEAD) and then\n" ;\
+			printf "    $(BLU)make push-dev release/promote-oss/dev-to-passed-ci$(END)\n" ;\
+			exit 1 ;\
+		fi ;\
+		printf "$(CYN)==> $(GRN)Promoting $(BLU)$$commit$(GRN) => $(BLU)$$parent_version$(GRN) in S3 $(BUCKET)...$(END)\n" ;\
+		echo "$$parent_version" | aws s3 cp - s3://$(AWS_S3_BUCKET)/$(BUCKET)/$$commit ;\
+	}
+.PHONY: release/promote-oss/copy-map-main
+
+release/promote-oss/copy-map-entries:
+	BUCKET=dev-builds $(MAKE) release/promote-oss/copy-map-main
+	BUCKET=passed-builds $(MAKE) release/promote-oss/copy-map-main
+
 # should run on every PR once the builds have passed
 # this is less strong than "release/promote-oss/dev-to-passed-ci"
 release/promote-oss/pr-to-passed-ci:

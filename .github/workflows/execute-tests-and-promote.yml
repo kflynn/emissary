@@ -250,3 +250,17 @@ jobs:
       - name: "promote build to passed"
         run: |
           make release/promote-oss/dev-to-passed-ci
+  copy-map-entries:
+    name: job-copy-map-entries
+    runs-on: ubuntu-latest
+    needs:
+      - interesting_changes
+    if: needs.interesting_changes.outputs.interesting != 'yes'
+    steps:
+      - uses: actions/checkout@v2
+        with:
+          fetch-depth: 0
+          ref: ${{ github.event.pull_request.head.sha }}
+      - name: "promote build to passed"
+        run: |
+          make release/promote-oss/copy-map-entries
