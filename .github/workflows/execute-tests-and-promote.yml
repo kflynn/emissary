@@ -4,26 +4,60 @@ on:
   push:
     branches:
       - master
-    paths-ignore:
-      - 'releng/**'
-      - 'charts/**'
-      - 'manifests/**'
-      - 'k8s-config/**'
-      - 'docs/**'
-      - '*.md$'
+    # paths-ignore:
+    #   - 'releng/**'
+    #   - 'charts/**'
+    #   - 'manifests/**'
+    #   - 'k8s-config/**'
+    #   - 'docs/**'
+    #   - '*.md$'
   pull_request:
-    paths-ignore:
-      - 'releng/**'
-      - 'charts/**'
-      - 'manifests/**'
-      - 'k8s-config/**'
-      - 'docs/**'
-      - '*.md$'
+    # paths-ignore:
+    #   - 'releng/**'
+    #   - 'charts/**'
+    #   - 'manifests/**'
+    #   - 'k8s-config/**'
+    #   - 'docs/**'
+    #   - '*.md$'
 
 jobs:
-  lint-test:
-    name: "lint-test"
+  interesting_changes:
     runs-on: ubuntu-latest
+    outputs:
+      interesting: ${{ steps.changed.outputs.result }}
+    steps:
+      # If the only changes are in
+      #   - 'releng/**'
+      #   - 'charts/**'
+      #   - 'manifests/**'
+      #   - 'k8s-config/**'
+      #   - 'docs/**'
+      #   - '*.md$'
+      # then there are no interesting changes here.
+      - id: files
+        name: "Get all changed files"
+        uses: jitterbit/get-changed-files@v1
+        continue-on-error: true
+      - id: changed
+        name: "Check for interesting source changes"
+        run: |
+          INTERESTING="no"
+          for changed_file in ${{ steps.files.outputs.all }}; do
+            if [[ ! $changed_file =~ ^(releng/|charts/|manifests/|k8s-config/|docs/|\.github/|.*\.md$) ]]; then
+              echo "INTERESTING CHANGE $changed_file"
+              INTERESTING="yes"
+              break
+            else
+              echo "Boring change $changed_file"
+            fi
+          done
+          echo "Interesting changes == ${INTERESTING}"
+          echo "::set-output name=result::${INTERESTING}"
+  lint-test:
+    name: lint-test
+    runs-on: ubuntu-latest
+    needs: interesting_changes
+    if: needs.interesting_changes.outputs.interesting == 'yes'
     steps:
       - uses: actions/checkout@v2
         with:
@@ -31,8 +65,10 @@ jobs:
       - uses: ./.github/actions/execute-lint-test
         name: "execute lint-test action"
   generate:
-    name: "generate"
+    name: generate
     runs-on: ubuntu-latest
+    needs: interesting_changes
+    if: needs.interesting_changes.outputs.interesting == 'yes'
     steps:
       - uses: actions/checkout@v2
         with:
@@ -40,15 +76,20 @@ jobs:
       - uses: ./.github/actions/execute-generate
         name: "execute generate action"
   check-envoy-version:
-    name: "check-envoy-version"
+    name: check-envoy-version
     runs-on: ubuntu-latest
+    needs: interesting_changes
+    if: needs.interesting_changes.outputs.interesting == 'yes'
     steps:
       - uses: actions/checkout@v2
         with:
           fetch-depth: 0
       - run: make check-envoy-version
   go-tests:
+    name: gotest-legacy-mode:${{ matrix.gotest-settings.legacy-mode }}, fast-reconfigure:${{ matrix.gotest-settings.fast-reconfigure }}
     runs-on: ubuntu-latest
+    needs: interesting_changes
+    if: needs.interesting_changes.outputs.interesting == 'yes'
     strategy:
       matrix:
         # NOTES:
@@ -70,7 +111,6 @@ jobs:
         exclude:
           - isMasterOrRelease: false # if we are not master/release then we exclude legacy mode
             gotest-settings: {legacy-mode: true, fast-reconfigure: false}
-    name: gotest-legacy-mode:${{ matrix.gotest-settings.legacy-mode }}, fast-reconfigure:${{ matrix.gotest-settings.fast-reconfigure }}
     steps:
       - uses: actions/checkout@v2
       - uses: ./.github/actions/execute-go-tests
@@ -80,7 +120,10 @@ jobs:
         if: always()
         name: "Collect testing logs"
   pytests:
+    name: pytest-${{ matrix.test }} (legacy-mode:${{ matrix.pytest-settings.legacy-mode }}, fast-reconfigure:${{ matrix.pytest-settings.fast-reconfigure }})
     runs-on: ubuntu-latest
+    needs: interesting_changes
+    if: needs.interesting_changes.outputs.interesting == 'yes'
     env:
       DEV_REGISTRY: ${{ secrets.DEV_REGISTRY }}
       DOCKER_USERNAME: ${{ secrets.GH_DOCKER_BUILD_USERNAME }}
@@ -107,7 +150,6 @@ jobs:
         exclude:
           - isMasterOrRelease: false # if we are not master/release then we exclude legacy mode
             pytest-settings: {legacy-mode: true, fast-reconfigure: false}
-    name: pytest-${{ matrix.test }} (legacy-mode:${{ matrix.pytest-settings.legacy-mode }}, fast-reconfigure:${{ matrix.pytest-settings.fast-reconfigure }})
     steps:
       - uses: actions/checkout@v2
         with:
@@ -125,7 +167,10 @@ jobs:
         if: always()
         name: "Collect testing logs"
   pytest-unit:
+    name: pytest-${{ matrix.test }} (legacy-mode:${{ matrix.pytest-settings.legacy-mode }}, fast-reconfigure:${{ matrix.pytest-settings.fast-reconfigure }})
     runs-on: ubuntu-latest
+    needs: interesting_changes
+    if: needs.interesting_changes.outputs.interesting == 'yes'
     strategy:
       matrix:
         # NOTES:
@@ -149,7 +194,6 @@ jobs:
         exclude:
           - isMasterOrRelease: false # if we are not master/release then we exclude legacy mode
             pytest-settings: {legacy-mode: true, fast-reconfigure: false}
-    name: pytest-${{ matrix.test }} (legacy-mode:${{ matrix.pytest-settings.legacy-mode }}, fast-reconfigure:${{ matrix.pytest-settings.fast-reconfigure }})
     steps:
       - uses: actions/checkout@v2
         with:
@@ -161,8 +205,10 @@ jobs:
         if: always()
         name: "Collect testing logs"
   job-image:
-    name: "job-image"
+    name: job-image
     runs-on: ubuntu-latest
+    needs: interesting_changes
+    if: needs.interesting_changes.outputs.interesting == 'yes'
     env:
       AWS_ACCESS_KEY_ID: ${{ secrets.GH_AWS_ACCESS_KEY_ID }}
       AWS_SECRET_ACCESS_KEY: ${{ secrets.GH_AWS_SECRET_ACCESS_KEY }}
@@ -179,7 +225,10 @@ jobs:
       - uses: ./.github/actions/execute-job-image
         name: "execute job-image action"
   promote-to-passed:
+    name: job-promote-to-passed
+    runs-on: ubuntu-latest
     needs:
+      - interesting_changes
       - lint-test
       - job-image
       - generate
@@ -187,8 +236,7 @@ jobs:
       - go-tests
       - pytests
       - pytest-unit
-    runs-on: ubuntu-latest
-    name: job-promote-to-passed
+    if: needs.interesting_changes.outputs.interesting == 'yes'
     env:
       AWS_ACCESS_KEY_ID: ${{ secrets.GH_AWS_ACCESS_KEY_ID }}
       AWS_SECRET_ACCESS_KEY: ${{ secrets.GH_AWS_SECRET_ACCESS_KEY }}
@@ -202,3 +250,17 @@ jobs:
       - name: "promote build to passed"
         run: |
           make release/promote-oss/dev-to-passed-ci
+  copy-map-entries:
+    name: job-copy-map-entries
+    runs-on: ubuntu-latest
+    needs:
+      - interesting_changes
+    if: needs.interesting_changes.outputs.interesting != 'yes'
+    steps:
+      - uses: actions/checkout@v2
+        with:
+          fetch-depth: 0
+          ref: ${{ github.event.pull_request.head.sha }}
+      - name: "promote build to passed"
+        run: |
+          make release/promote-oss/copy-map-entries
