@@ -824,7 +824,7 @@ release/promote-oss/copy-map-main:
 		fi ;\
 		parent_version= ;\
 		show_fix= ;\
-		parents=$$(git rev-parse HEAD^) ;\
+		parents=$$(git rev-parse HEAD^@) ;\
 		for commit in $$parents; do \
 			v=$$(aws s3 cp s3://$(AWS_S3_BUCKET)/$(BUCKET)/$$commit - 2>/dev/null || true) ;\
 			if [ -n "$$v" ]; then \
