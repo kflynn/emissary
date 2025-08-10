@@ -169,6 +169,38 @@ python-dev-setup:
 # activate venv
 	@echo "run 'source ./venv/bin/activate' to activate venv in local shell"
 
+## Build the development container for the local arch only
+.PHONY: devcontainer-build
+devcontainer-build: ## Build the dev container image locally
+	docker buildx build \
+		--build-arg GO_MOD_VERSION=$$(grep '^go ' go.mod | awk '{print $$2}') \
+        --load \
+		-t emissary-devcontainer:latest .devcontainer/
+
+## Build and push the development container to GHCR (requires authentication)
+.PHONY: devcontainer-build-push
+devcontainer-build-push: ## Build and push the dev container to GHCR
+	docker buildx build --platform linux/amd64,linux/arm64 \
+		--build-arg GO_MOD_VERSION=$$(grep '^go ' go.mod | awk '{print $$2}') \
+		-t ghcr.io/emissary-ingress/emissary-dev:latest \
+		--push .devcontainer/
+
+## Pull the development container from GHCR
+.PHONY: devcontainer-pull
+devcontainer-pull: ## Pull the latest dev container from GHCR
+	docker pull ghcr.io/emissary-ingress/emissary-dev:latest
+	docker tag ghcr.io/emissary-ingress/emissary-dev:latest emissary-devcontainer:latest
+
+## Run the development container interactively with workspace mounted
+.PHONY: devcontainer-run
+devcontainer-run: ## Run the dev container with the workspace mounted
+	docker run --rm -it \
+		-v "$(PWD):/workspace" \
+		-v /var/run/docker.sock:/var/run/docker.sock \
+		-w /workspace \
+		--user $$(id -u):$$(id -g) \
+		emissary-devcontainer:latest bash
+
 # re-generate docs
 .PHONY: clean-changelog
 clean-changelog:
