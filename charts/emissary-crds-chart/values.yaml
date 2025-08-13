@@ -1,0 +1,13 @@
+enableLegacyVersions: false     # Set to true to include at least v2 versions and the
+                                # conversion webhook.
+enableV1: false                 # Set to true with enableLegacyVersions true to also
+                                # include v1 versions. No effect without
+                                # enableLegacyVersions.
+
+emissary:
+  namespace: emissary
+
+apiext:
+  repository: ghcr.io/emissary-ingress/emissary
+  tag: 0.0.0-test
+  pullPolicy: IfNotPresent
