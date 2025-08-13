@@ -1020,8 +1020,9 @@ class Runner:
         self.__func__ = test
         self.__test__ = True
 
-    def __call__(self):
-        assert False, "this is here for py.test discovery purposes only"
+    def __call__(self, *args, **kwargs):
+        # Delegate to the actual test function for pytest
+        return self.__func__(*args, **kwargs)
 
     def setup(self, selected):
         if not self.done:

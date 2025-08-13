@@ -16,6 +16,7 @@ def _get_images() -> Dict[str, str]:
     # These should really be overridable by environment variables or a file
     # or something.
     return {
+        "emissary": f"ghcr.io/emissary-ingress/emissary:latest-{arch}",
         "test-auth": f"ghcr.io/emissary-ingress/test-auth:latest-{arch}",
         "test-shadow": f"ghcr.io/emissary-ingress/test-shadow:latest-{arch}",
         "test-stats": f"ghcr.io/emissary-ingress/test-stats:latest-{arch}",

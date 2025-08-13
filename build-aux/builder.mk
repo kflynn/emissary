@@ -139,17 +139,26 @@ python-integration-test-environment: python-virtual-environment
 python-integration-test-environment: proxy
 .PHONY: python-integration-test-environment
 
+# pytest-run-tests:
+# 	@printf "$(CYN)==> $(GRN)Running $(BLU)py$(GRN) tests$(END)\n"
+# 	@echo "AMBASSADOR_DOCKER_IMAGE=$$AMBASSADOR_DOCKER_IMAGE"
+# 	@echo "DEV_KUBECONFIG=$$DEV_KUBECONFIG"
+# 	@echo "PYTEST_ARGS=$$PYTEST_ARGS"
+# 	set -e; { \
+# 	  . $(OSS_HOME)/.venv/bin/activate; \
+# 	  export SOURCE_ROOT=$(CURDIR); \
+# 	  export ENVOY_DOCKER_TAG=ghcr.io/emissary-ingress/emissary:latest-$(ARCH)
+# 	  export KUBESTATUS_PATH=$(CURDIR)/tools/bin/kubestatus; \
+# 	  pytest --tb=short -rP $(PYTEST_ARGS); \
+# 	}
+# .PHONY: pytest-run-tests
+
 pytest-run-tests:
 	@printf "$(CYN)==> $(GRN)Running $(BLU)py$(GRN) tests$(END)\n"
-	@echo "AMBASSADOR_DOCKER_IMAGE=$$AMBASSADOR_DOCKER_IMAGE"
-	@echo "DEV_KUBECONFIG=$$DEV_KUBECONFIG"
 	@echo "PYTEST_ARGS=$$PYTEST_ARGS"
 	set -e; { \
 	  . $(OSS_HOME)/.venv/bin/activate; \
-	  export SOURCE_ROOT=$(CURDIR); \
-	  export ENVOY_DOCKER_TAG=ghcr.io/emissary-ingress/emissary:latest-$(ARCH)
-	  export KUBESTATUS_PATH=$(CURDIR)/tools/bin/kubestatus; \
-	  pytest --tb=short -rP $(PYTEST_ARGS); \
+	  echo pytest --tb=short -rP $$PYTEST_ARGS; \
 	}
 .PHONY: pytest-run-tests
 
@@ -180,17 +189,33 @@ pytest-integration-tests:
 pytest-integration: python-integration-test-environment pytest-integration-tests
 .PHONY: pytest-integration
 
+# pytest-kat-envoy3-tests: # doing this all at once is too much for CI...
+# 	$(MAKE) pytest-run-tests PYTEST_ARGS="$$PYTEST_ARGS python/tests/src/tests/kat"
+# pytest-kat-envoy3: python-integration-test-environment pytest-kat-envoy3-tests
+# # ... so we have a separate rule to run things split up
+# build-aux/.pytest-kat.txt.stamp: $(OSS_HOME)/.venv push-pytest-images $(tools/kubectl) FORCE
+# 	set -o pipefail && uv run pytest --collect-only python/tests/src/tests/kat 2>&1 | sed -En 's/.*<Function (.*)>/\1/p' | cut -d. -f1 | sort -u > $@
+# build-aux/pytest-kat.txt: build-aux/%: build-aux/.%.stamp $(tools/copy-ifchanged)
+# 	$(tools/copy-ifchanged) $< $@
+# clean: build-aux/.pytest-kat.txt.stamp.rm build-aux/pytest-kat.txt.rm
+# pytest-kat-envoy3-tests-%: build-aux/pytest-kat.txt $(tools/py-split-tests)
+# 	$(MAKE) pytest-run-tests PYTEST_ARGS="$$PYTEST_ARGS -k '$$($(tools/py-split-tests) $(subst -of-, ,$*) <build-aux/pytest-kat.txt)' python/tests/src/tests/kat"
+# pytest-kat-envoy3-%: python-integration-test-environment pytest-kat-envoy3-tests-%
+
+# This version assumes that the cluster is already set up.
+pytest-test-list: FORCE $(OSS_HOME)/.venv
+	set -o pipefail && uv run pytest --collect-only python/tests/src/tests/kat 2>&1 | sed -En 's/.*<Function (.*)>/\1/p' | cut -d. -f1 | sort -u > $@
+.PHONY: pytest-test-list
+clean: pytest-test-list.rm
+
+pytest-kat-envoy3: $(OSS_HOME)/.venv $(tools/kubectl) pytest-test-list
+	$(MAKE) pytest-run-tests PYTEST_ARGS="$$PYTEST_ARGS python/tests/src/tests/kat"
+
 pytest-kat-envoy3-tests: # doing this all at once is too much for CI...
 	$(MAKE) pytest-run-tests PYTEST_ARGS="$$PYTEST_ARGS python/tests/src/tests/kat"
-pytest-kat-envoy3: python-integration-test-environment pytest-kat-envoy3-tests
-# ... so we have a separate rule to run things split up
-build-aux/.pytest-kat.txt.stamp: $(OSS_HOME)/.venv push-pytest-images $(tools/kubectl) FORCE
-	set -o pipefail && uv run pytest --collect-only python/tests/src/tests/kat 2>&1 | sed -En 's/.*<Function (.*)>/\1/p' | cut -d. -f1 | sort -u > $@
-build-aux/pytest-kat.txt: build-aux/%: build-aux/.%.stamp $(tools/copy-ifchanged)
-	$(tools/copy-ifchanged) $< $@
-clean: build-aux/.pytest-kat.txt.stamp.rm build-aux/pytest-kat.txt.rm
-pytest-kat-envoy3-tests-%: build-aux/pytest-kat.txt $(tools/py-split-tests)
-	$(MAKE) pytest-run-tests PYTEST_ARGS="$$PYTEST_ARGS -k '$$($(tools/py-split-tests) $(subst -of-, ,$*) <build-aux/pytest-kat.txt)' python/tests/src/tests/kat"
+
+pytest-kat-envoy3-tests-%: pytest-test-list $(tools/py-split-tests)  $(tools/kubectl)
+	$(MAKE) pytest-run-tests PYTEST_ARGS="$$PYTEST_ARGS -k '$$($(tools/py-split-tests) $(subst -of-, ,$*) <pytest-test-list)' python/tests/src/tests/kat"
 pytest-kat-envoy3-%: python-integration-test-environment pytest-kat-envoy3-tests-%
 
 $(OSS_HOME)/.venv: pyproject.toml

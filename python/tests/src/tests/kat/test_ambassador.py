@@ -2,6 +2,10 @@
 
 # import t_shadow
 # import t_stats # t_stats has tests for statsd and dogstatsd. It's too flaky to run all the time.
+
+import t_basics
+import t_extauth
+
 from abstract_tests import AmbassadorTest
 from kat.harness import Runner
 
