@@ -8,6 +8,8 @@ emissary:
   namespace: emissary
 
 apiext:
-  repository: ghcr.io/emissary-ingress/emissary
-  tag: 0.0.0-test
+  # apiext docker repo
+  repository: @imageRepo@
+  # apiext docker tag
+  tag: @version@
   pullPolicy: IfNotPresent

@@ -1,4 +1,12 @@
-all: chart
+IMAGE_REPO ?= ghcr.io/emissary-ingress/emissary
+
+all: charts
+
+charts: emissary-crds-chart emissary-ingress
+
+# These are just aliases
+emissary-crds-chart: emissary-crds-chart-$(VERSION).tgz
+emissary-ingress: emissary-ingress-$(VERSION).tgz
 
 version-check:
 	@if [ -z "$(VERSION)" ]; then \
@@ -14,23 +22,22 @@ helm-registry-check:
 	fi
 .PHONY: helm-registry-check
 
-emissary-crds-chart-$(VERSION).tgz: version-check emissary-crds-chart
-	rm -rf emissary-crds-chart-$(VERSION)
-	cp -pr emissary-crds-chart emissary-crds-chart-$(VERSION)
-	sed -e "s/%VERSION%/$(VERSION)/" \
-		< emissary-crds-chart-$(VERSION)/Chart.yaml > emissary-crds-chart-$(VERSION)/Chart-fixed.yaml
-	mv emissary-crds-chart-$(VERSION)/Chart-fixed.yaml emissary-crds-chart-$(VERSION)/Chart.yaml
-	helm package ./emissary-crds-chart-$(VERSION)
+emissary-crds-chart-$(VERSION).tgz: version-check emissary-crds
+	bash bin/build-chart emissary-crds $(VERSION) $(IMAGE_REPO) $$(pwd)
+	ls -l emissary-crds-chart-$(VERSION).tgz
 
-push-chart: version-check helm-registry-check emissary-crds-chart-$(VERSION).tgz
+emissary-ingress-$(VERSION).tgz: version-check emissary-chart
+	bash bin/build-chart emissary-chart $(VERSION) $(IMAGE_REPO) $$(pwd)
+	ls -l emissary-ingress-$(VERSION).tgz
+
+push-chart: version-check helm-registry-check
 	if [ -n "$(HELM_REGISTRY)" ]; then \
 		helm push emissary-crds-chart-$(VERSION).tgz $(HELM_REGISTRY); \
+		helm push emissary-ingress-$(VERSION).tgz $(HELM_REGISTRY); \
 	else \
 		echo "HELM_REGISTRY not set, not pushing"; \
 	fi
 
-# This is just an alias
-chart: emissary-crds-chart-$(VERSION).tgz
-
 clean:
 	rm -rf emissary-crds-chart-*
+	rm -rf emissary-ingress-*

@@ -13,7 +13,7 @@ keywords:
 - ingress-controller
 - envoy
 kubeVersion: ">=1.25.0-0"
-name: emissary-chart
+name: emissary-ingress
 sources:
 - https://github.com/emissary-ingress/emissary
 version: @chartVersion@
