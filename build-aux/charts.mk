@@ -44,9 +44,9 @@ CRD_FILES= \
 	tlscontexts.yaml \
 	tracingservices.yaml
 
-helmify-crds: $(OSS_HOME)/_generate.tmp/crds
+helmify-crds: $(OSS_HOME)/.venv $(OSS_HOME)/_generate.tmp/crds
 	rm -f $(patsubst %,$(CHART_DIR)/emissary-crds/templates/%,$(CRD_FILES))
-	python $(CHART_DIR)/helmify-crds.py \
+	uv run python $(CHART_DIR)/helmify-crds.py \
 		--output $(CHART_DIR)/emissary-crds/templates \
 		$(patsubst %,$(OSS_HOME)/_generate.tmp/crds/getambassador.io_%,$(CRD_FILES))
 

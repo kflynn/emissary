@@ -6,8 +6,6 @@ BUILDER_NAME ?= $(LCNAME)
 include $(OSS_HOME)/build-aux/prelude.mk
 include $(OSS_HOME)/build-aux/colors.mk
 
-include $(OSS_HOME)/build-aux/teleproxy.mk
-
 MODULES :=
 
 module = $(eval MODULES += $(1))$(eval SOURCE_$(1)=$(abspath $(2)))
